@@ -68,8 +68,8 @@ create_env() {
 ### Add edge binary dependencies
 THE_USER="root"
 
-set -e
-apt-get update -y
+#set -e
+echo -e "Empezamos con la moviola..."
 
 # install prerequisities and Mono x64
 if [ ! -e /etc/apt/sources.list.d/mono-xamarin.list ]
@@ -82,6 +82,8 @@ fi
 
 apt-get -y install curl g++ pkg-config libgdiplus libunwind8 libssl-dev make mono-complete gettext libssl-dev libcurl4-openssl-dev zlib1g libicu-dev uuid-dev unzip
 curl -sSL https://raw.githubusercontent.com/aspnet/Home/dev/dnvminstall.sh | DNX_BRANCH=dev sudo -u ${THE_USER} sh
+
+echo -e "Fin de la moviola"
 
 header "Creating runtime environment"
 create_env # can't pipe the whole thing because piping causes subshells, preventing exports
