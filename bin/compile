@@ -70,13 +70,44 @@ THE_USER="root"
 
 #set -e
 echo -e "Empezamos con la moviola..."
+export_apt_env
+APT_CACHE_DIR="$CACHE_DIR/apt/cache"
+APT_STATE_DIR="$CACHE_DIR/apt/state"
+
+mkdir -p "$APT_CACHE_DIR/archives/partial"
+mkdir -p "$APT_STATE_DIR/lists/partial"
+
+APT_OPTIONS="-o debug::nolocking=true -o dir::cache=$APT_CACHE_DIR -o dir::state=$APT_STATE_DIR"
+
+topic "Updating apt caches"
+apt-get $APT_OPTIONS update | indent
+
+for PACKAGE in $(cat $BUILD_DIR/Aptfile); do
+  if [[ $PACKAGE == *deb ]]; then
+    PACKAGE_NAME=$(basename $PACKAGE .deb)
+    PACKAGE_FILE=$APT_CACHE_DIR/archives/$PACKAGE_NAME.deb
+
+    topic "Fetching $PACKAGE"
+    curl -s -L -z $PACKAGE_FILE -o $PACKAGE_FILE $PACKAGE 2>&1 | indent
+  else
+    topic "Fetching .debs for $PACKAGE"
+    apt-get $APT_OPTIONS -y --force-yes -d install --reinstall $PACKAGE | indent
+  fi
+done
+
+mkdir -p $BUILD_DIR/.apt
+
+for DEB in $(ls -1 $APT_CACHE_DIR/archives/*.deb); do
+  topic "Installing $(basename $DEB)"
+  dpkg -x $DEB $BUILD_DIR/.apt/
+done
 
 # install prerequisities and Mono x64
 if [ ! -e /etc/apt/sources.list.d/mono-xamarin.list ]
 then
-#    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-    echo "deb http://download.mono-project.com/repo/debian wheezy main" | tee /etc/apt/sources.list.d/mono-xamarin.list
-    echo "deb http://download.mono-project.com/repo/debian wheezy-libjpeg62-compat main" | tee -a /etc/apt/sources.list.d/mono-xamarin.list
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+#    echo "deb http://download.mono-project.com/repo/debian wheezy main" | tee /etc/apt/sources.list.d/mono-xamarin.list
+#    echo "deb http://download.mono-project.com/repo/debian wheezy-libjpeg62-compat main" | tee -a /etc/apt/sources.list.d/mono-xamarin.list
     apt-get update
 fi
 
